@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-ping-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ping-client
+  template:
+    metadata:
+      labels:
+        app: ping-client
+    spec:
+      containers:
+      - name: webserver
+        image: hossainemruz/sample-ping-client:v1
+        env:
+        - name: PING_URL
+          value: "http://cluster-ip-service:80/hello"
+        - name: PING_INTERVAL
+          value: "1s"

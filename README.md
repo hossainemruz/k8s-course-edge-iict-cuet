@@ -1,281 +1,181 @@
-# Session 2: Deploying an Application on Kubernetes
+# Session 3: Accessing an Application on Kubernetes
 
-In this session, we will learn how to deploy an application on Kubernetes. We will learn about how we can use different types of workloads to deploy our app based on different requirements.
+In this session, we will learn how we can access an application running inside a Kubernetes cluster.
 
 **Theory:**
 
-- Introduction to Pod, Deployment, ReplicaSet
-- Introduction to Job, CronJob
-- Introduction to DaemonSet
+- Introduction to Service
+- Understanding DNS resolution in Kubernetes
+- Introduction to Ingress and Ingress Controller
 
 **Hands On:**
 
-- Deploy a sample application using Pod
-- Deploy same application using Deployment
-  - Scale up a deployment
-  - Perform a rolling update
-  - Perform a rollback
-- Deploy a job
-- Schedule a CronJob
-- Deploy a DaemonSet
+- Accessing application using port-forwarding
+- Accessing application using NodePort Service
+- Accessing application using LoadBalancer Service
+- Pod to Pod communication using ClusterIP Service
+- Load balancing using  Service
+- Accessing application using Ingress
 
-## Deploy Sample Application using Pod
+## Accessing application using port-forwarding
 
-To deploy the sample web server using a Pod, run:
+Kubernetes port-forwarding let you create a temporary connection between your local machine and a pod.
+
+**Syntax:**
 
 ```bash
-kubectl apply -f manifests/pod.yaml
+kubectl port-forward <pod-name> <local-port>:<pod-port>
 ```
 
-To check, if the Pod is running, run:
+If you omit the local port, Kubernetes will automatically assign a port for you.
+
+**Example:**
+
+At first, let's deploy our sample web server:
 
 ```bash
-kubectl get pod sample-web-server --show-labels
+kubectl apply -f manifests/sample-server.yaml
 ```
 
-You can also run following commands to show the node where the Pod is running:
+Once the pod is running, run the following command to forward the port:
 
 ```bash
-kubectl get pod sample-web-server -o wide
+# specify a local port. it does not have to be the same as the pod port
+kubectl port-forward <pod name> 8085:8080
+
+# or let Kubernetes chose a local port for you
+kubectl port-forward <pod name> :8080
 ```
 
-To access the web server, run this command on a separate terminal:
+Now, you can access the web server by using `http://localhost:<local port>` URL.
 
 ```bash
-kubectl port-forward sample-web-server 8080:8080
-```
-
-Now, you can `curl` the web server using:
-
-```bash
-curl http://localhost:8080/hello
-```
-
-To delete the Pod, run:
-
-```bash
-kubectl delete pod sample-web-server
+curl http://localhost:8085/hello
 ```
 
 **Resources:**
 
-- [Pod Documentation](https://kubernetes.io/docs/concepts/workloads/pods/)
-- [What is Kubernetes Pod? Explained With Practical Examples](https://devopscube.com/kubernetes-pod/)
-- [Kubernetes Pod Lifecycle Explained With Examples](https://devopscube.com/kubernetes-pod-lifecycle/)
-- [Kubernetes Init Containers: A Complete Guide](https://devopscube.com/kubernetes-init-containers/)
+- [Use Port Forwarding to Access Applications in a Cluster](https://kubernetes.io/docs/tasks/access-application-cluster/port-forward-access-application-cluster/)
+- [What Is Kubectl Port-Forward and How Does It Work?](https://kodekloud.com/blog/port-forwarding-kubernetes/)
+- [How does kubectl port-forward work?](https://dumlutimuralp.medium.com/how-kubectl-port-forward-works-79d0fbb16de3)
+- [Kubectl PortForward Examples - How to PortForward in K8s](https://www.middlewareinventory.com/blog/kubectl-port-forward/)
 
-## Deploy Sample Application using Deployment
+## Accessing application using NodePort Service
 
-To deploy the sample web server using a Deployment, run:
+NodePort service let you expose your application on a certain port on each node in the cluster.
 
-```bash
-kubectl apply -f manifests/deployment.yaml
-```
-
-To check, if the Deployment is ready, run:
+Let's create a NodePort service for our sample web server:
 
 ```bash
-kubectl get deployment sample-web-server
+kubectl apply -f manifests/node-port-service.yaml
 ```
 
-You should see `1/1` replica is ready on `READY` column.
-
-Deployment will create a ReplicaSet and which will create the Pod. To list the ReplicaSet created by the Deployment, run:
+Describe the Service to get details about the NodePort assigned to the service:
 
 ```bash
-kubectl get replicaset -l app=hello-server
+kubectl describe service node-port-service
 ```
 
-To get the pods created by the ReplicaSet, run:
+Now, you can access the sample server using `http://<node-ip>:<node-port>` URL.
+
+To get your node IPs, run the following command:
 
 ```bash
-kubectl get pods -l app=hello-server -o wide
+kubectl get nodes -o wide
 ```
 
-### Scale up a Deployment
+You will see the IP addresses of the nodes in `INTERNAL-IP` column. You can use any of these node IP address to access the service.
 
-Now, will run 3 instance of our application so that it can handle more load. To scale up the Deployment, run:
+```bash
+curl http://<node-ip>:<node-port>/hello
+```
+
+## Accessing application using LoadBalancer Service
+
+LoadBalancer service let you expose your application outside the cluster using a cloud provider's load balancer.
+
+At first, install and run the [cloud-provider-kind](https://github.com/kubernetes-sigs/cloud-provider-kind) to simulate a cloud provider in the local Kubernetes cluster:
+
+```bash
+# install the cloud-provider-kind
+go install sigs.k8s.io/cloud-provider-kind@latest
+
+# run the cloud-provider-kind
+./cloud-provider-kind
+```
+
+Then, create a LoadBalancer service for our sample web server:
+
+```bash
+kubectl apply -f manifests/load-balancer-service.yaml
+```
+
+Now, run the following command and wait for the `EXTERNAL-IP` to be assigned to the service:
+
+```bash
+watch -n 1 kubectl get service load-balancer-service 
+```
+
+Once the EXTERNAL-IP is assigned, you can access the sample server using `http://<external-ip>:<port>` URL.
+
+```bash
+curl http://<external-ip>:80/hello
+```
+
+## Pod to Pod communication using ClusterIP Service
+
+At first, create a ClusterIP service for our sample web server:
+
+```bash
+kubectl apply -f manifests/cluster-ip-service.yaml
+```
+
+Now, any application running inside cluster can access the server using following URLs:
+
+```bash
+# From same namespace
+curl http://cluster-ip-service:<port>
+
+# From different namespace. Here, `default` is the namespace where the service is running
+curl http://cluster-ip-service.default.svc:<port>
+```
+
+Let's create the sample ping client to test the communication. Set the `PING_URL` environment variable to `http://cluster-ip-service:80/hello`.
+
+```bash
+kubectl apply -f manifests/sample-ping-client.yaml
+```
+
+Now, check the logs of the ping client pod to see if it can access the sample server:
+
+```bash
+kubectl logs -l app=ping-client -f
+```
+
+## Load balancing using Service
+
+Service in Kubernetes provides load balancing for the pods. It distributes the traffic among the pods that are part of the service.
+
+Let's scale the sample server to 3 replicas:
 
 ```bash
 kubectl scale deployment sample-web-server --replicas=3
 ```
 
-To check, if the Deployment is scaled up, run:
+Now, let's use the NodePort service to send periodic request from our local machine to the sample server:
 
 ```bash
-kubectl get pods -l app=hello-server -o wide
+while true; do
+  curl http://<node ip>:<node port>/hello
+  sleep 1
+done
 ```
 
-You should see 3 pods are running.
+You will see that the requests are distributed among the pods.
 
-### Perform a Rolling Update
+## Resources
 
-At first, let's modify our sample web-server and build a new `v2` image version with the change.
-
-Once the image has been pushed to the registry, update the Deployment with the new image:
-
-```bash
-kubectl set image deployment/sample-web-server webserver=hossainemruz/sample-web-server:v2
-```
-
-To see rollout progress, run:
-
-```bash
-kubectl rollout status deployment/sample-web-server
-```
-
-This rolling update will create a new ReplicaSet with the new image and scale down the old ReplicaSet. To check the current ReplicaSets, run:
-
-```bash
-kubectl get replicaset -l app=hello-server -o wide
-```
-
-You should see 2 ReplicaSets. One with the old image and another with the new image. The old ReplicaSet will be scaled down to 0 once the new ReplicaSet is ready.
-
-To confirm the new image is running, run:
-
-```bash
-kubectl logs -l app=hello-server
-```
-
-It will print log for all the hello-server pods. You should see the log reporting version to be `v2.0.0`.
-
-### Perform a Rollback
-
-At first, let's modify our sample web-server and introduce a bug which will cause the app to crash. Then, build a new `v3` image version with the bug.
-
-Once the image has been pushed to the registry, update the Deployment with the new image:
-
-```bash
-kubectl set image deployment/sample-web-server webserver=hossainemruz/sample-web-server:v3
-```
-
-This time, the new pod will fail to start due to the bug. To check the status of the pods, run:
-
-```bash
-kubectl get pods -l app=hello-server -o wide
-```
-
-You should see the new pod is in `CrashLoopBackOff` state.
-
-To check the rollout status, run:
-
-```bash
-kubectl rollout status deployment/sample-web-server
-```
-
-You should see only one replica has been updated with new image.
-
-If you check the ReplicaSets, you will see it created only 1 replica of the new image and old ReplicaSet is still running with 3 replicas.
-
-To rollback to the previous version, run:
-
-```bash
-kubectl rollout undo deployment/sample-web-server
-```
-
-Once the rollback is complete, if you check the ReplicaSet you will see the ReplicaSet with `v2` image has been scaled to 3 replicas and ReplicaSet with `v3` image has been scaled to 0 replica.
-
-**Resources:**
-
-- [Deployment Documentation](https://kubernetes.io/docs/concepts/workloads/controllers/deployment/)
-
-## Deploy a Job
-
-To deploy a Job, run:
-
-```bash
-kubectl apply -f manifests/job.yaml
-```
-
-To see the Job status, run:
-
-```bash
-kubectl get job pi
-```
-
-To see the pod created by the Job, run:
-
-```bash
-kubectl get pods -l batch.kubernetes.io/job-name=pi
-```
-
-To delete the Job, run:
-
-```bash
-kubectl delete job pi
-```
-
-**Resources:**
-
-- [Job Documentation](https://kubernetes.io/docs/concepts/workloads/controllers/job/)
-
-## Schedule a CronJob
-
-To deploy a CronJob, run:
-
-```bash
-kubectl apply -f manifests/cronjob.yaml
-```
-
-To see the CronJob status, run:
-
-```bash
-kubectl get cronjob sample-cronjob
-```
-
-To see the Job created by the CronJob, run:
-
-```bash
-kubectl get jobs -l app=sample-cronjob
-```
-
-To see the pods created by the Jobs, run:
-
-```bash
-kubectl get pods -l app=sample-cronjob
-```
-
-To delete the CronJob, run:
-
-```bash
-kubectl delete cronjob sample-cronjob
-```
-
-**Resources:**
-
-- [CronJob Documentation](https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/)
-
-
-## Deploy a DaemonSet
-
-To create a sample DaemonSet, run:
-
-```bash
-kubectl apply -f manifests/daemonset.yaml
-```
-
-To see the DaemonSet status, run:
-
-```bash
-kubectl get daemonset fluentd
-```
-
-To see the pods created by the DaemonSet, run:
-
-```bash
-kubectl get pods -l app=fluentd -o wide
-```
-
-You will see it has created a pod on each worker node node.
-
-To delete the DaemonSet, run:
-
-```bash
-kubectl delete daemonset fluentd
-```
-
-**Resources:**
-
-- [DaemonSet Documentation](https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/)
-- [Kubernetes Daemonset: A Comprehensive Guide](https://devopscube.com/kubernetes-daemonset/)
+- [Use a Service to Access an Application in a Cluster](https://kubernetes.io/docs/tasks/access-application-cluster/service-access-application-cluster/)
+- [The difference between ClusterIP, NodePort, and LoadBalancer Kubernetes services](https://octopus.com/blog/difference-clusterip-nodeport-loadbalancer-kubernetes)
+- [Kubernetes NodePort vs LoadBalancer vs Ingress? When should I use what?](https://medium.com/google-cloud/kubernetes-nodeport-vs-loadbalancer-vs-ingress-when-should-i-use-what-922f010849e0)
+- [3 Ways to Expose Applications Running in Kubernetes Cluster to Public Access](https://medium.com/@seanlinsanity/how-to-expose-applications-running-in-kubernetes-cluster-to-public-access-65c2fa959a3b)

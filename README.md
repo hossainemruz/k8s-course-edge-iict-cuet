@@ -113,7 +113,7 @@ kubectl apply -f manifests/load-balancer-service.yaml
 Now, run the following command and wait for the `EXTERNAL-IP` to be assigned to the service:
 
 ```bash
-watch -n 1 kubectl get service load-balancer-service 
+watch -n 1 kubectl get service load-balancer-service
 ```
 
 Once the EXTERNAL-IP is assigned, you can access the sample server using `http://<external-ip>:<port>` URL.
@@ -154,7 +154,7 @@ kubectl logs -l app=ping-client -f
 
 ## Load balancing using Service
 
-Service in Kubernetes provides load balancing for the pods. It distributes the traffic among the pods that are part of the service.
+Service in Kubernetes provides load balancing for the pods. It distributes the traffic among the pods that are selected by the service.
 
 Let's scale the sample server to 3 replicas:
 
@@ -173,9 +173,71 @@ done
 
 You will see that the requests are distributed among the pods.
 
+## Accessing application using Ingress
+
+Ingress let's you route external traffic to your services inside the cluster based on host, path etc.
+
+At first, let's apply a label to our control-plane node so that ingress controller can run on it:
+
+```bash
+kubectl label node kind-control-plane ingress-ready=true
+```
+
+Now, install the Nginx Ingress Controller:
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+```
+
+Wait for the ingress controller to be running:
+
+```bash
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=300s
+```
+
+If you list services in the `ingress-nginx` namespace, you will see a NodePort type service named `ingress-nginx-controller`. We will use this service to access the ingress.
+
+```bash
+kubectl get service -n ingress-nginx
+```
+
+Let's deploy two sample applications `foo` and `bar`:
+
+```bash
+kubectl apply -f manifests/app-foo.yaml
+kubectl apply -f manifests/app-bar.yaml
+```
+
+This will create two deployments with our sample web server image and ClusterIP service for for them. Verify that the services have been created:
+
+```bash
+kubectl get service
+```
+
+Now, create the Ingress resource:
+
+```bash
+kubectl apply -f manifests/ingress.yaml
+```
+
+Finally, we can access the sample applications using following URLs.
+
+```bash
+# access foo application
+curl http://<any node ip>:<node port>/foo/hello
+
+# access bar application
+curl http://<any node ip>:<node port>/bar/hello
+```
+
 ## Resources
 
 - [Use a Service to Access an Application in a Cluster](https://kubernetes.io/docs/tasks/access-application-cluster/service-access-application-cluster/)
 - [The difference between ClusterIP, NodePort, and LoadBalancer Kubernetes services](https://octopus.com/blog/difference-clusterip-nodeport-loadbalancer-kubernetes)
 - [Kubernetes NodePort vs LoadBalancer vs Ingress? When should I use what?](https://medium.com/google-cloud/kubernetes-nodeport-vs-loadbalancer-vs-ingress-when-should-i-use-what-922f010849e0)
 - [3 Ways to Expose Applications Running in Kubernetes Cluster to Public Access](https://medium.com/@seanlinsanity/how-to-expose-applications-running-in-kubernetes-cluster-to-public-access-65c2fa959a3b)
+- [Ingress Documentation](https://kubernetes.io/docs/concepts/services-networking/ingress/)
+- [Kubernetes Ingress Tutorial For Beginners](https://devopscube.com/kubernetes-ingress-tutorial/)

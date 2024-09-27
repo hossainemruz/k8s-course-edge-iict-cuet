@@ -15,6 +15,12 @@ In this session, we will learn what is Kubernetes and why we need it. We will le
 - Install [kind](https://kind.sigs.k8s.io/docs/user/quick-start/)
 - Install [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl)
 
+## Theory Resources
+- [Kubernetes Concepts (Official docs)](https://kubernetes.io/docs/concepts/)
+- [Why do you need Kubernetes? What Kubernetes is not?](https://www.linkedin.com/pulse/why-do-you-need-kubernetes-krishna-wattamwar-vs8of)
+- [Why you should use Kubernetes?](https://faun.pub/why-you-should-use-kubernetes-bf395bef52de)
+- [7 Reasons Kubernetes Is Important for DevOps](https://www.turing.com/blog/importance-of-kubernetes-for-devops)
+- [Understanding Kubernetes Architecture: A Comprehensive Guide](https://devopscube.com/kubernetes-architecture-explained/)
 ## Creating a Kubernetes Cluster
 
 We will be creating a 3 node cluster. At first create a `kind.yaml` file with the following content:
@@ -167,6 +173,7 @@ kubectl --help
 
 
 **Resources:**
+
 - [kubectl reference guide](https://kubernetes.io/docs/reference/kubectl/quick-reference/)
 - [Commands guide for kubectl](https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands)
 

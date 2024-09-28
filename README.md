@@ -1,23 +1,23 @@
-# Session 3: Accessing an Application on Kubernetes
+# Session 4: Stateful Application on Kubernetes
 
 In this session, we will learn how we can access an application running inside a Kubernetes cluster.
 
 **Theory:**
 
-- Introduction to Service
-- Understanding DNS resolution in Kubernetes
-- Introduction to Ingress and Ingress Controller
+- Introduction to Persistent Volume
+- Introduction to StatefulSet
+- Introduction to ConfigMap and Secrets
 
 **Hands On:**
 
-- Accessing application using port-forwarding
-- Accessing application using NodePort Service
-- Accessing application using LoadBalancer Service
-- Pod to Pod communication using ClusterIP Service
-- Load balancing using  Service
-- Accessing application using Ingress
+- Deploying sample app without persistent volume
+- Creating a Persistent Volume
+- Deploy sample application with persistent volume
+- Deploy a database with StatefulSet
+- Pass configuration to application using ConfigMap
+- Pass sensitive information to a application using Secret
 
-## Accessing application using port-forwarding
+## Deploy sample application with persistent volume
 
 Kubernetes port-forwarding let you create a temporary connection between your local machine and a pod.
 

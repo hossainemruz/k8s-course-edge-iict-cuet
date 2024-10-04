@@ -1,0 +1,29 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: read-only-user
+subjects:
+  - kind: ServiceAccount
+    name: read-only-user
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: view
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: read-only-user
+  namespace: kube-system
+secrets:
+  - name: read-only-user
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: read-only-user
+  namespace: kube-system
+  annotations:
+    kubernetes.io/service-account.name: read-only-user
+type: kubernetes.io/service-account-token

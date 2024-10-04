@@ -1,6 +1,6 @@
-# Session 4: Stateful Application on Kubernetes
+# Session 5: Role Based Access Control (RBAC)
 
-In this session, we will learn how we can access an application running inside a Kubernetes cluster.
+In this session, we will learn how we can control access of Kubernetes resources.
 
 **Theory:**
 

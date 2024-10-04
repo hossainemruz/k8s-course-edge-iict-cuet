@@ -1,5 +1,3 @@
-
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,7 +20,7 @@ spec:
     spec:
       containers:
       - name: webserver
-        image: hossainemruz/sample-web-server:v4
+        image: hossainemruz/sample-web-server:v1
         ports:
         - containerPort: 8080
         readinessProbe:
@@ -31,3 +29,4 @@ spec:
             port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
+      serviceAccountName: pod-reader

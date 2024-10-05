@@ -1,0 +1,12 @@
+apiVersion: dabase.example.com/v1
+kind: PostgreSQL
+metadata:
+  labels:
+    app.kubernetes.io/name: sample-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: postgresql-sample
+spec:
+  version: "16"
+  storage: "5Gi"
+  cpu: "500m"
+  memory: "1Gi"
